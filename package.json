@@ -1,0 +1,46 @@
+{
+  "name": "openclaw-memory-hub",
+  "version": "0.1.0",
+  "description": "Lightweight, token-optimized memory system for OpenClaw",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "lint": "eslint src/"
+  },
+  "keywords": [
+    "openclaw",
+    "memory",
+    "ai",
+    "agent",
+    "token-optimized"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/openclaw-memory-hub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/openclaw-memory-hub/issues"
+  },
+  "homepage": "https://github.com/yourusername/openclaw-memory-hub#readme",
+  "dependencies": {
+    "openclaw": "^0.1.0",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

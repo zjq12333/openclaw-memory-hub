@@ -1,0 +1,65 @@
+{
+  "id": "openclaw-memory-hub",
+  "name": "Memory Hub",
+  "description": "Lightweight, token-optimized memory system for OpenClaw",
+  "kind": "memory",
+  "version": "0.1.0",
+  "author": "",
+  "repository": "https://github.com/yourusername/openclaw-memory-hub",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "storagePath": {
+        "type": "string",
+        "default": "~/memory",
+        "description": "Memory storage path"
+      },
+      "autoRecall": {
+        "type": "boolean",
+        "default": true,
+        "description": "Auto-recall relevant memories before each AI turn"
+      },
+      "autoCapture": {
+        "type": "boolean",
+        "default": true,
+        "description": "Auto-capture important information from conversations"
+      },
+      "captureInterval": {
+        "type": "number",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20,
+        "description": "Capture memories every N turns"
+      },
+      "obsidianSync": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable Obsidian vault sync"
+      },
+      "obsidianVault": {
+        "type": "string",
+        "description": "Path to Obsidian vault"
+      },
+      "vectorSearch": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable vector-based semantic search"
+      },
+      "maxRecallResults": {
+        "type": "number",
+        "default": 3,
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Maximum number of memories to recall"
+      },
+      "recallThreshold": {
+        "type": "number",
+        "default": 0.7,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Minimum relevance threshold for recall"
+      }
+    },
+    "required": []
+  }
+}
