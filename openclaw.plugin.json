@@ -5,7 +5,7 @@
   "kind": "memory",
   "version": "0.1.0",
   "author": "",
-  "repository": "https://github.com/yourusername/openclaw-memory-hub",
+  "repository": "https://github.com/zjq12333/openclaw-memory-hub",
   "configSchema": {
     "type": "object",
     "properties": {

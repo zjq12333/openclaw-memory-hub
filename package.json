@@ -22,12 +22,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/openclaw-memory-hub.git"
+    "url": "https://github.com/zjq12333/openclaw-memory-hub.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/openclaw-memory-hub/issues"
+    "url": "https://github.com/zjq12333/openclaw-memory-hub/issues"
   },
-  "homepage": "https://github.com/yourusername/openclaw-memory-hub#readme",
+  "homepage": "https://github.com/zjq12333/openclaw-memory-hub#readme",
   "dependencies": {
     "openclaw": "^0.1.0",
     "gray-matter": "^4.0.3"
