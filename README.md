@@ -272,12 +272,18 @@ Agent 可使用以下工具管理记忆：
 ## 开发路线
 
 - [x] Phase 1: 设计方案
-- [ ] Phase 2: 基础 Plugin 框架
-- [ ] Phase 3: Core Block 管理
-- [ ] Phase 4: Auto-Recall 实现
-- [ ] Phase 5: Auto-Capture 实现
-- [ ] Phase 6: Obsidian 同步
-- [ ] Phase 7: 向量搜索（可选）
+- [x] Phase 2: 基础 Plugin 框架 ✅ 已实现
+- [x] Phase 3: Core Block 管理 ✅ 已实现（支持active_tasks核心块管理）
+- [x] Phase 4: Auto-Recall 实现 ✅ 已实现（自动召回相关记忆）
+- [x] Phase 5: Auto-Capture 实现 ✅ 已实现（自动捕获重要信息）
+- [x] Phase 6: Obsidian 同步 ✅ 已实现（双向同步到Obsidian知识库）
+- [x] Phase 7: 向量搜索（可选）✅ 已实现（与memory-lancedb-pro集成向量检索）
+
+## 双记忆架构扩展
+本项目已经和 `memory-lancedb-pro` 形成双记忆架构配合工作：
+- **openclaw-memory-hub**：负责实时会话记忆抓取、token优化存储、Core Block 管理（每轮仅300-800 tokens）
+- **memory-lancedb-pro**：负责长期向量检索、多维度记忆归档、大容量语义搜索
+两者自动同步数据，兼顾效率和容量
 
 ## 贡献
 
