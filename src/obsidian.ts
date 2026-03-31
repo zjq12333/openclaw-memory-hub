@@ -1,4 +1,4 @@
-import type { MemoryStorage } from "./storage.ts"
+import type { MemoryStorage } from "./storage-sqlite.js"
 import { join, dirname } from "path"
 import { mkdir, writeFile } from "fs/promises"
 

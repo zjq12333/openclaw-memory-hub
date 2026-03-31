@@ -1,13 +1,14 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
-import { parseConfig, type MemoryHubConfig } from "./config.ts"
-import { MemoryStorage } from "./storage.ts"
-import { buildRecallHandler } from "./recall.ts"
-import { buildCaptureHandler } from "./capture.ts"
-import { registerRecallTool } from "./tools/recall.ts"
-import { registerStoreTool } from "./tools/store.ts"
-import { registerForgetTool } from "./tools/forget.ts"
-import { registerListTool } from "./tools/list.ts"
-import { registerStatusCommand } from "./commands/status.ts"
+import { Type } from "@sinclair/typebox"
+import { parseConfig, type MemoryHubConfig } from "./config.js"
+import { MemoryStorage } from "./storage-sqlite.js"
+import { buildRecallHandler } from "./recall.js"
+import { buildCaptureHandler } from "./capture.js"
+import { registerRecallTool } from "./tools/recall.js"
+import { registerStoreTool } from "./tools/store.js"
+import { registerForgetTool } from "./tools/forget.js"
+import { registerListTool } from "./tools/list.js"
+import { registerCommands } from "./commands/status.js"
 
 export type { MemoryHubConfig }
 
@@ -33,7 +34,7 @@ export default {
 	},
 
 	register(api: OpenClawPluginApi) {
-		const config = parseConfig(api.pluginConfig)
+		const config = parseConfig(api.pluginConfig || {})
 		const storage = new MemoryStorage(config.storagePath)
 
 		// Register memory tools
@@ -43,12 +44,14 @@ export default {
 		registerListTool(api, storage, config)
 
 		// Register CLI commands
-		registerStatusCommand(api, storage, config)
+		registerCommands(api, storage, config)
 
 		// Auto-Recall: before each AI turn
 		if (config.autoRecall) {
 			const recallHandler = buildRecallHandler(storage, config)
-			api.on("before_agent_start", recallHandler)
+			api.on("before_agent_start", (event, ctx) => {
+				void recallHandler(event, ctx)
+			})
 		}
 
 		// Auto-Capture: after AI turn (batched)
@@ -59,8 +62,8 @@ export default {
 
 		// Obsidian sync (optional)
 		if (config.obsidianSync && config.obsidianVault) {
-			api.on("agent_end", async (event, ctx) => {
-				const { syncToObsidian } = await import("./obsidian.ts")
+			api.on("agent_end", async (event) => {
+				const { syncToObsidian } = await import("./obsidian.js")
 				return syncToObsidian(storage, config.obsidianVault!, event)
 			})
 		}

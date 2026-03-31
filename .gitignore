@@ -24,3 +24,10 @@ coverage/
 # Environment
 .env
 .env.local
+
+# Database files
+*.db
+*.db.sql
+
+# Lock file
+package-lock.json

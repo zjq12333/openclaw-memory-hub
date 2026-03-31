@@ -1,4 +1,4 @@
-import type { MemoryStorage, Memory } from "./storage.ts"
+import type { MemoryStorage, Memory } from "./storage-sqlite.ts"
 import type { MemoryHubConfig } from "./config.ts"
 
 // Track turn count per session
@@ -101,19 +101,21 @@ async function storeMemoryByType(storage: MemoryStorage, memory: Memory): Promis
 			const current = await storage.loadCoreBlock("active_tasks")
 			const updated = updateActiveTasks(current, memory)
 			await storage.updateCoreBlock("active_tasks", updated)
+			// Also store in SQLite
+			await storage.storeMemory({ ...memory, category: "tasks" })
 			break
 
 		case "decision":
-			await storage.storeMemory("decisions", memory)
+			await storage.storeMemory({ ...memory, category: "decisions" })
 			break
 
 		case "project":
-			await storage.storeMemory("projects", memory)
+			await storage.storeMemory({ ...memory, category: "projects" })
 			break
 
 		case "preference":
 		case "fact":
-			await storage.storeMemory("knowledge", memory)
+			await storage.storeMemory({ ...memory, category: "knowledge" })
 			break
 	}
 }

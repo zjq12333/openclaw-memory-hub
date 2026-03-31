@@ -1,4 +1,4 @@
-import type { MemoryStorage } from "./storage.ts"
+import type { MemoryStorage } from "./storage-sqlite.ts"
 import type { MemoryHubConfig } from "./config.ts"
 
 /**
@@ -18,7 +18,7 @@ export function buildRecallHandler(storage: MemoryStorage, config: MemoryHubConf
 			}
 
 			// 3. Search archive for relevant memories
-			const relevant = await storage.searchArchive(lastMessage, {
+			const relevant = await storage.searchMemories(lastMessage, {
 				limit: config.maxRecallResults,
 				threshold: config.recallThreshold,
 			})

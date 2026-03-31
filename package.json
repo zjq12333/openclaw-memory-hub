@@ -9,7 +9,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "init-db": "npx tsx scripts/init-db.ts"
   },
   "keywords": [
     "openclaw",
@@ -29,8 +30,12 @@
   },
   "homepage": "https://github.com/zjq12333/openclaw-memory-hub#readme",
   "dependencies": {
-    "openclaw": "^0.1.0",
+    "@sinclair/typebox": "^0.34.0",
+    "sql.js": "^1.10.3",
     "gray-matter": "^4.0.3"
+  },
+  "peerDependencies": {
+    "openclaw": ">=0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
