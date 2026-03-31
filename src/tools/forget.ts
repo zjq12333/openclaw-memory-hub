@@ -22,15 +22,15 @@ export function registerForgetTool(
 				], { description: "Category to delete from" }),
 			}),
 			async execute(_toolCallId: string, params: { id: string; category: string }) {
-				const success = await storage.deleteMemory(params.category, params.id)
+				const success = await storage.deleteMemory(params.id)
 				if (success) {
 					return {
-						content: [{ type: "text" as const, text: `Memory ${params.id} deleted from ${params.category}.` }],
+						content: [{ type: "text" as const, text: `Memory ${params.id} deleted.` }],
 						details: { id: params.id, deleted: true },
 					}
 				}
 				return {
-					content: [{ type: "text" as const, text: `Memory ${params.id} not found in ${params.category}.` }],
+					content: [{ type: "text" as const, text: `Memory ${params.id} not found.` }],
 					details: { id: params.id, deleted: false },
 				}
 			},

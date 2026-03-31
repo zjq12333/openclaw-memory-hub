@@ -1,6 +1,6 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import { Type } from "@sinclair/typebox"
-import type { MemoryStorage } from "../storage-sqlite.js"
+import type { MemoryStorage, Memory } from "../storage-sqlite.js"
 import type { MemoryHubConfig } from "../config.js"
 
 export function registerRecallTool(
@@ -20,7 +20,7 @@ export function registerRecallTool(
 				),
 			}),
 			async execute(_toolCallId: string, params: { query: string; limit?: number }) {
-				const results = await storage.searchArchive(params.query, {
+				const results = await storage.searchMemories(params.query, {
 					limit: params.limit ?? config.maxRecallResults,
 					threshold: config.recallThreshold,
 				})
@@ -33,7 +33,7 @@ export function registerRecallTool(
 				}
 
 				const text = results
-					.map((m, i) => `${i + 1}. [${m.type}] ${m.content.slice(0, 300)}`)
+					.map((m: Memory, i: number) => `${i + 1}. [${m.type}] ${m.content.slice(0, 300)}`)
 					.join("\n")
 
 				return {

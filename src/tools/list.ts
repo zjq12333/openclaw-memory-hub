@@ -23,7 +23,7 @@ export function registerListTool(
 				),
 			}),
 			async execute(_toolCallId: string, params: { category?: string }) {
-				const memories = await storage.listMemories(params.category)
+				const memories = await storage.listMemories(params.category ? { category: params.category } : undefined)
 
 				if (memories.length === 0) {
 					return {

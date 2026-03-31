@@ -9,7 +9,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export interface Memory {
 	id: string
-	type: "task" | "decision" | "project" | "preference" | "fact" | "conversation"
+	type: "task" | "decision" | "project" | "preference" | "fact" | "conversation" | "team"
 	category?: string
 	title?: string
 	content: string
