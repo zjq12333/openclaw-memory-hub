@@ -18,6 +18,14 @@ export interface Memory {
 	createdAt: string
 	updatedAt: string
 	metadata?: Record<string, unknown>
+	// 新增：向量相关字段
+	embedding?: number[]
+	embeddingModel?: string
+	// 新增：生命周期相关字段
+	accessCount?: number
+	lastAccessed?: string
+	tier?: "core" | "working" | "peripheral"
+	decayScore?: number
 }
 
 export interface Task {

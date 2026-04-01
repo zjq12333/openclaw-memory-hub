@@ -8,14 +8,16 @@ import { registerRecallTool } from "./tools/recall.js"
 import { registerStoreTool } from "./tools/store.js"
 import { registerForgetTool } from "./tools/forget.js"
 import { registerListTool } from "./tools/list.js"
+import { registerStatsTool } from "./tools/stats.js"
 import { registerCommands } from "./commands/status.js"
+import { checkOllamaAvailable } from "./embedding.js"
 
 export type { MemoryHubConfig }
 
 export default {
 	id: "openclaw-memory-hub",
 	name: "Memory Hub",
-	description: "Lightweight, token-optimized memory system",
+	description: "Lightweight, token-optimized memory system with local vector search (Ollama)",
 	kind: "memory" as const,
 	configSchema: {
 		type: "object",
@@ -26,9 +28,20 @@ export default {
 			captureInterval: { type: "number", default: 5 },
 			obsidianSync: { type: "boolean", default: false },
 			obsidianVault: { type: "string" },
-			vectorSearch: { type: "boolean", default: false },
-			maxRecallResults: { type: "number", default: 3 },
-			recallThreshold: { type: "number", default: 0.7 },
+			vectorSearch: { type: "boolean", default: true },
+			maxRecallResults: { type: "number", default: 5 },
+			recallThreshold: { type: "number", default: 0.5 },
+			// 新增：Ollama 配置
+			ollamaBaseUrl: { type: "string", default: "http://localhost:11434" },
+			ollamaModel: { type: "string", default: "nomic-embed-text" },
+			// 新增：生命周期配置
+			decayEnabled: { type: "boolean", default: true },
+			decayHalfLifeDays: { type: "number", default: 30 },
+			// 新增：智能提取配置
+			smartExtraction: { type: "boolean", default: false },
+			smartExtractionModel: { type: "string" },
+			smartExtractionBaseUrl: { type: "string" },
+			smartExtractionApiKey: { type: "string" },
 		},
 		required: [],
 	},
@@ -42,6 +55,7 @@ export default {
 		registerStoreTool(api, storage, config)
 		registerForgetTool(api, storage, config)
 		registerListTool(api, storage, config)
+		registerStatsTool(api, storage, config)
 
 		// Register CLI commands
 		registerCommands(api, storage, config)
@@ -70,9 +84,23 @@ export default {
 
 		api.registerService({
 			id: "openclaw-memory-hub",
-			start: () => {
-				api.logger.info("memory-hub: initialized")
+			start: async () => {
+				api.logger.info("memory-hub: initializing...")
 				storage.ensureStructure()
+
+				// Check Ollama availability
+				if (config.vectorSearch) {
+					const available = await checkOllamaAvailable({
+						baseUrl: config.ollamaBaseUrl || "http://localhost:11434",
+					})
+					if (available) {
+						api.logger.info(`memory-hub: Ollama vector search available (model: ${config.ollamaModel || "nomic-embed-text"})`)
+					} else {
+						api.logger.warn("memory-hub: Ollama not available, falling back to keyword search")
+					}
+				}
+
+				api.logger.info("memory-hub: initialized successfully")
 			},
 			stop: () => {
 				api.logger.info("memory-hub: stopped")

@@ -1,5 +1,7 @@
 import type { MemoryStorage, Memory } from "./storage-sqlite.ts"
 import type { MemoryHubConfig } from "./config.ts"
+import { generateEmbedding } from "./embedding.js"
+import { calculateDecayScore, classifyMemoryTier } from "./lifecycle.js"
 
 // Track turn count per session
 const sessionTurnCounts = new Map<string, number>()
@@ -73,11 +75,11 @@ export function buildCaptureHandler(storage: MemoryStorage, config: MemoryHubCon
 			if (!transcript || transcript.length === 0) return
 
 			// Extract memories from transcript
-			const memories = await extractMemories(transcript)
+			const memories = await extractMemories(transcript, config)
 
 			// Store extracted memories
 			for (const memory of memories) {
-				await storeMemoryByType(storage, memory)
+				await storeMemoryByType(storage, memory, config)
 			}
 
 			console.log(`[Memory Hub] Captured ${memories.length} memories at turn ${newCount}`)
@@ -91,7 +93,8 @@ export function buildCaptureHandler(storage: MemoryStorage, config: MemoryHubCon
  * Extract memories from transcript using intelligent pattern matching
  */
 async function extractMemories(
-	transcript: Array<{ role: string; content: string }>
+	transcript: Array<{ role: string; content: string }>,
+	config: MemoryHubConfig
 ): Promise<Memory[]> {
 	const memories: Memory[] = []
 	const now = new Date().toISOString()
@@ -122,16 +125,48 @@ async function extractMemories(
 					else if (type === "project") category = "projects"
 					else if (type === "team") category = "team"
 
-					memories.push({
+					// Calculate importance
+					const importance = calculateImportance(content, type)
+
+					// Create memory object
+					const memory: Memory = {
 						id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
 						type: type as Memory["type"],
 						category,
 						title,
 						content,
-						importance: calculateImportance(content, type),
+						importance,
 						createdAt: now,
 						updatedAt: now,
-					})
+						accessCount: 0,
+					}
+
+					// Generate embedding if vector search is enabled
+					if (config.vectorSearch && config.ollamaBaseUrl) {
+						try {
+							const embeddingResult = await generateEmbedding(
+								`${title}\n${content}`,
+								{
+									baseUrl: config.ollamaBaseUrl,
+									model: config.ollamaModel || "nomic-embed-text",
+								}
+							)
+							if (embeddingResult) {
+								memory.embedding = embeddingResult.embedding
+								memory.embeddingModel = embeddingResult.model
+							}
+						} catch (error) {
+							console.warn("[Memory Hub] Failed to generate embedding:", error)
+						}
+					}
+
+					// Calculate decay score and tier
+					if (config.decayEnabled) {
+						memory.decayScore = calculateDecayScore(memory)
+						memory.tier = classifyMemoryTier(memory)
+					}
+
+					memories.push(memory)
 					break // Only one memory per type per message
 				}
 			}
@@ -180,7 +215,11 @@ function deduplicateMemories(memories: Memory[]): Memory[] {
 	return Array.from(seen.values())
 }
 
-async function storeMemoryByType(storage: MemoryStorage, memory: Memory): Promise<void> {
+async function storeMemoryByType(
+	storage: MemoryStorage,
+	memory: Memory,
+	config: MemoryHubConfig
+): Promise<void> {
 	switch (memory.type) {
 		case "task":
 			// Update active_tasks core block
@@ -235,7 +274,7 @@ async function appendToDecisionsFile(storage: MemoryStorage, memory: Memory): Pr
 		const fs = await import("fs/promises")
 		const path = await import("path")
 		
-		const storagePath = (storage as unknown as { config: { storagePath: string } }).config?.storagePath || 
+		const storagePath = (storage as unknown as { getBasePath: () => string }).getBasePath?.() || 
 			require("os").homedir() + "/memory"
 		const decisionsDir = path.join(storagePath, "decisions")
 		const today = new Date().toISOString().split("T")[0]
