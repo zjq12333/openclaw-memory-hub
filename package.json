@@ -1,7 +1,7 @@
 {
   "name": "openclaw-memory-hub",
-  "version": "0.1.0",
-  "description": "Lightweight, token-optimized memory system for OpenClaw",
+  "version": "0.2.0",
+  "description": "Lightweight, token-optimized memory system with local vector search (Ollama) and lifecycle management",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
