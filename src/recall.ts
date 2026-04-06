@@ -1,5 +1,6 @@
 import type { MemoryStorage } from "./storage-sqlite.ts"
 import type { MemoryHubConfig } from "./config.ts"
+import { generateEmbedding } from "./embedding.js"
 
 /**
  * Build the auto-recall handler
@@ -21,9 +22,22 @@ export function buildRecallHandler(storage: MemoryStorage, config: MemoryHubConf
 			const relevant = await storage.searchMemories(lastMessage, {
 				limit: config.maxRecallResults,
 				threshold: config.recallThreshold,
+				vectorSearch: config.vectorSearch,
+				generateEmbedding: async (text: string) => {
+					const result = await generateEmbedding(text, {
+						baseUrl: config.ollamaBaseUrl,
+						model: config.ollamaModel,
+					})
+					return result?.embedding || null
+				}
 			})
 
-			// 4. Format for context injection
+			// 4. Touch accessed memories (reinforce)
+			for (const mem of relevant) {
+				void storage.touchMemory(mem.id)
+			}
+
+			// 5. Format for context injection
 			const context = formatForContext(activeTasks, relevant)
 
 			return { context }

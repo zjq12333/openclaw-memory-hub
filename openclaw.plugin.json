@@ -42,22 +42,59 @@
       },
       "vectorSearch": {
         "type": "boolean",
-        "default": false,
+        "default": true,
         "description": "Enable vector-based semantic search"
       },
       "maxRecallResults": {
         "type": "number",
-        "default": 3,
+        "default": 5,
         "minimum": 1,
         "maximum": 10,
         "description": "Maximum number of memories to recall"
       },
       "recallThreshold": {
         "type": "number",
-        "default": 0.7,
+        "default": 0.5,
         "minimum": 0,
         "maximum": 1,
         "description": "Minimum relevance threshold for recall"
+      },
+      "ollamaBaseUrl": {
+        "type": "string",
+        "default": "http://localhost:11434",
+        "description": "Ollama base URL for vector embedding"
+      },
+      "ollamaModel": {
+        "type": "string",
+        "default": "nomic-embed-text",
+        "description": "Ollama embedding model"
+      },
+      "decayEnabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enable automatic memory decay"
+      },
+      "decayHalfLifeDays": {
+        "type": "number",
+        "default": 30,
+        "description": "Decay half-life in days"
+      },
+      "smartExtraction": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable smart extraction of important information from conversations"
+      },
+      "smartExtractionModel": {
+        "type": "string",
+        "description": "Model for smart extraction (defaults to ollamaModel if not set)"
+      },
+      "smartExtractionBaseUrl": {
+        "type": "string",
+        "description": "Base URL for smart extraction API (defaults to ollamaBaseUrl if not set)"
+      },
+      "smartExtractionApiKey": {
+        "type": "string",
+        "description": "API key for smart extraction (if needed)"
       }
     },
     "required": []

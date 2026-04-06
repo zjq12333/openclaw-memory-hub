@@ -63,16 +63,84 @@ Config:
 ${activeTasks}
 
 ## Archived Memories
-${memories.map((m) => `### [${m.type}] ${m.id}\n${m.content}`).join("\n\n")}
+${memories.map((m) => `### [${m.type}] ${m.id}
+${m.content}`).join("\n\n")}`,
+				}
+			}
+
+			if (subCommand === "maintenance") {
+				const result = await storage.maintenance()
+
+				return {
+					text: `🧠 Memory Hub Maintenance Completed
+
+Decay: ✅ Done
+Compaction:
+- Removed duplicates: ${result.compactResult.removedDuplicates}
+- Removed low-value archived: ${result.compactResult.removedLowValue}
+- Total before: ${result.compactResult.totalBefore}
+- Total after: ${result.compactResult.totalAfter}
+
+📊 Current Statistics:
+- Total Memories: ${result.stats.totalMemories}
+- Total Tasks: ${result.stats.totalTasks}
+- Active Tasks: ${result.stats.activeTasks}
+- Archived Memories: ${result.stats.archivedMemories}
+- Entities: ${result.stats.totalEntities}`,
+				}
+			}
+
+			if (subCommand === "importance") {
+				const id = args[1]
+				const newImp = parseFloat(args[2])
+
+				if (!id || isNaN(newImp) || newImp < 0 || newImp > 1) {
+					return {
+						text: `❌ Invalid arguments
+
+Usage: /memory importance <memory-id> <0-1>
+- memory-id: ID of the memory
+- 0-1: new importance value (0 = low importance, 1 = maximum importance)
 `,
+					}
+				}
+
+				const mem = await storage.getMemory(id)
+				if (!mem) {
+					return {
+						text: `❌ Memory not found: ${id}`,
+					}
+				}
+
+				// Update importance
+				mem.importance = newImp
+				mem.updatedAt = new Date().toISOString()
+
+				// Re-calculate tier
+				mem.tier = storage.calculateTier(newImp, mem.accessCount || 0)
+
+				await storage.storeMemory(mem)
+				const stats = await storage.getStats()
+
+				return {
+					text: `✅ Memory importance updated
+
+Memory: ${id}
+New importance: ${newImp}
+New tier: ${mem.tier}
+
+📊 Current statistics:
+- Total memories: ${stats.totalMemories}`,
 				}
 			}
 
 			return {
 				text: `Memory Hub Commands:
 /memory status - Show memory status
+/memory importance <id> <0-1> - Adjust memory importance
+/memory maintenance - Run decay + compaction maintenance
 /memory export - Export all memories`,
 			}
-		},
+		}
 	})
 }

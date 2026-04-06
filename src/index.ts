@@ -10,7 +10,7 @@ import { registerForgetTool } from "./tools/forget.js"
 import { registerListTool } from "./tools/list.js"
 import { registerStatsTool } from "./tools/stats.js"
 import { registerCommands } from "./commands/status.js"
-import { checkOllamaAvailable } from "./embedding.js"
+import { checkOllamaAvailable, getAvailableModels } from "./embedding.js"
 
 export type { MemoryHubConfig }
 
@@ -86,19 +86,59 @@ export default {
 			id: "openclaw-memory-hub",
 			start: async () => {
 				api.logger.info("memory-hub: initializing...")
-				storage.ensureStructure()
+				await storage.ensureStructure()
 
-				// Check Ollama availability
-				if (config.vectorSearch) {
-					const available = await checkOllamaAvailable({
+			// Auto-detect Ollama models if not explicitly configured
+			if (config.vectorSearch) {
+				const available = await checkOllamaAvailable({
+					baseUrl: config.ollamaBaseUrl || "http://localhost:11434",
+				})
+				if (available) {
+					// Get available models
+				const models = await getAvailableModels({
 						baseUrl: config.ollamaBaseUrl || "http://localhost:11434",
 					})
-					if (available) {
-						api.logger.info(`memory-hub: Ollama vector search available (model: ${config.ollamaModel || "nomic-embed-text"})`)
-					} else {
-						api.logger.warn("memory-hub: Ollama not available, falling back to keyword search")
+
+				// Auto-select embedding model if not explicitly configured well
+				if (!config.ollamaModel || config.ollamaModel === "nomic-embed-text") {
+					// Check if nomic-embed-text is available
+					const hasNomic = models.some(m => m.includes("nomic-embed"))
+					if (hasNomic) {
+						config.ollamaModel = "nomic-embed-text"
+						api.logger.info("memory-hub: auto-detected nomic-embed-text for embedding")
+					} else if (models.length > 0) {
+						// Use the first available embedding-capable model
+					config.ollamaModel = models[0]
+						api.logger.info(`memory-hub: auto-selected embedding model: ${config.ollamaModel}`)
 					}
 				}
+
+				// Auto-select smart extraction model if enabled but not configured
+				if (config.smartExtraction && !config.smartExtractionModel) {
+				// Preference order: qwen3 > qwen2 > llama3 > mistral > any 7B/8B > embedding model
+				const preferredOrder = [/qwen.*3/i, /qwen.*2/i, /llama.*3/i, /mistral/i, /.*:?[78]b/i]
+				let found = false
+				for (const pattern of preferredOrder) {
+					const match = models.find(m => pattern.test(m))
+					if (match) {
+						config.smartExtractionModel = match
+						found = true
+						break
+					}
+				}
+				if (!found && models.length > 0) {
+					// Fall back to embedding model
+					config.smartExtractionModel = config.ollamaModel
+				}
+				config.smartExtractionBaseUrl = config.smartExtractionBaseUrl || config.ollamaBaseUrl
+				api.logger.info(`memory-hub: auto-selected extraction model: ${config.smartExtractionModel}`)
+			}
+
+				api.logger.info(`memory-hub: Ollama vector search available (embedding: ${config.ollamaModel}, extraction: ${config.smartExtractionModel || "disabled"})`)
+			} else {
+				api.logger.warn("memory-hub: Ollama not available, falling back to keyword search")
+			}
+		}
 
 				api.logger.info("memory-hub: initialized successfully")
 			},
