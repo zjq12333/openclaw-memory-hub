@@ -145,3 +145,73 @@ export async function getAvailableModels(
 		return []
 	}
 }
+
+/**
+ * 图片描述结果
+ */
+export interface ImageDescriptionResult {
+	description: string
+	model: string
+	success: boolean
+}
+
+/**
+ * 使用多模态VLM模型生成图片描述
+ * 用于将图片内容转换为文本，存入记忆以便搜索
+ */
+export async function generateImageDescription(
+	base64Image: string,
+	prompt: string = "请详细描述这张图片的内容，包括文字、图表、界面、物体等所有可见信息。",
+	config: {
+		baseUrl: string
+		model: string
+		timeout?: number
+	}
+): Promise<ImageDescriptionResult> {
+	const { baseUrl, model, timeout = 60000 } = config
+
+	try {
+		const controller = new AbortController()
+		const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+		// Ollama generate API for vision models
+		const response = await fetch(`${baseUrl}/api/generate`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				model,
+				prompt,
+				images: [base64Image],
+				stream: false,
+			}),
+			signal: controller.signal,
+		})
+
+		clearTimeout(timeoutId)
+
+		if (!response.ok) {
+			console.error(`[Vision] Ollama API error: ${response.status}`)
+			return { description: "", model, success: false }
+		}
+
+		const data = await response.json() as { response?: string }
+		
+		if (!data.response) {
+			console.error("[Vision] No response in output")
+			return { description: "", model, success: false }
+		}
+		
+		return {
+			description: data.response.trim(),
+			model,
+			success: true,
+		}
+	} catch (error) {
+		if ((error as Error).name === "AbortError") {
+			console.error("[Vision] Ollama timeout")
+		} else {
+			console.error("[Vision] Error:", error)
+		}
+		return { description: "", model, success: false }
+	}
+}

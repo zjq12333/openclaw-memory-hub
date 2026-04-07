@@ -11,6 +11,7 @@ import { registerListTool } from "./tools/list.js"
 import { registerStatsTool } from "./tools/stats.js"
 import { registerCommands } from "./commands/status.js"
 import { checkOllamaAvailable, getAvailableModels } from "./embedding.js"
+import { initDecayConfig } from "./lifecycle.js"
 
 export type { MemoryHubConfig }
 
@@ -31,17 +32,22 @@ export default {
 			vectorSearch: { type: "boolean", default: true },
 			maxRecallResults: { type: "number", default: 5 },
 			recallThreshold: { type: "number", default: 0.5 },
-			// 新增：Ollama 配置
+			// Ollama 配置
 			ollamaBaseUrl: { type: "string", default: "http://localhost:11434" },
 			ollamaModel: { type: "string", default: "nomic-embed-text" },
-			// 新增：生命周期配置
+			// 生命周期配置
 			decayEnabled: { type: "boolean", default: true },
 			decayHalfLifeDays: { type: "number", default: 30 },
-			// 新增：智能提取配置
+			// 智能提取配置
 			smartExtraction: { type: "boolean", default: false },
 			smartExtractionModel: { type: "string" },
 			smartExtractionBaseUrl: { type: "string" },
 			smartExtractionApiKey: { type: "string" },
+			// 多模态视觉配置（图片描述）
+			visionEnabled: { type: "boolean", default: true },
+			visionModel: { type: "string", default: "qwen3-vl:4b" },
+			visionBaseUrl: { type: "string", default: "http://localhost:11434" },
+			visionMaxImageSize: { type: "number", default: 1024 },
 		},
 		required: [],
 	},
@@ -88,6 +94,9 @@ export default {
 				api.logger.info("memory-hub: initializing...")
 				await storage.ensureStructure()
 
+				// Initialize decay configuration from settings
+				initDecayConfig(config)
+
 			// Auto-detect Ollama models if not explicitly configured
 			if (config.vectorSearch) {
 				const available = await checkOllamaAvailable({
@@ -100,8 +109,15 @@ export default {
 					})
 
 				// Auto-select embedding model if not explicitly configured well
+				// Prefer: nomic-embed-text-v2-moe (better quality) > nomic-embed-text > any other
 				if (!config.ollamaModel || config.ollamaModel === "nomic-embed-text") {
-					// Check if nomic-embed-text is available
+					// Check if high version nomic-embed-text-v2 is available
+					const hasNomicV2 = models.some(m => m.includes("nomic-embed-text-v2"))
+					if (hasNomicV2) {
+						config.ollamaModel = models.find(m => m.includes("nomic-embed-text-v2")) || config.ollamaModel
+						api.logger.info(`memory-hub: auto-detected high-version embedding model: ${config.ollamaModel}`)
+					} else {
+						// Check if basic nomic-embed-text is available
 					const hasNomic = models.some(m => m.includes("nomic-embed"))
 					if (hasNomic) {
 						config.ollamaModel = "nomic-embed-text"
@@ -111,6 +127,7 @@ export default {
 					config.ollamaModel = models[0]
 						api.logger.info(`memory-hub: auto-selected embedding model: ${config.ollamaModel}`)
 					}
+				}
 				}
 
 				// Auto-select smart extraction model if enabled but not configured
@@ -134,7 +151,21 @@ export default {
 				api.logger.info(`memory-hub: auto-selected extraction model: ${config.smartExtractionModel}`)
 			}
 
-				api.logger.info(`memory-hub: Ollama vector search available (embedding: ${config.ollamaModel}, extraction: ${config.smartExtractionModel || "disabled"})`)
+				// Auto-select vision model if enabled but not configured
+				if (config.visionEnabled && !config.visionModel) {
+					// Preference: already has qwen3-vl (best for vision)
+					const hasQwenVL = models.some(m => m.includes("vl") || m.includes("qwen") || m.includes("vision"))
+					if (hasQwenVL) {
+						config.visionModel = models.find(m => m.includes("vl") || m.includes("vision")) || "qwen3-vl:4b"
+					} else if (models.length > 0) {
+						// Use any available model
+						config.visionModel = models[0]
+					}
+					config.visionBaseUrl = config.visionBaseUrl || config.ollamaBaseUrl
+					api.logger.info(`memory-hub: auto-selected vision model: ${config.visionModel}`)
+				}
+
+				api.logger.info(`memory-hub: Ollama vector search available (embedding: ${config.ollamaModel}, extraction: ${config.smartExtractionModel || "disabled"}, vision: ${config.visionEnabled ? config.visionModel : "disabled"})`)
 			} else {
 				api.logger.warn("memory-hub: Ollama not available, falling back to keyword search")
 			}

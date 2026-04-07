@@ -6,6 +6,10 @@ import { calculateDecayScore, classifyMemoryTier } from "./lifecycle.js"
 // Track turn count per session
 const sessionTurnCounts = new Map<string, number>()
 
+// Track pending consolidation for async processing
+let pendingConsolidation: Memory[] = []
+const consolidationLock = { isProcessing: false }
+
 // Memory patterns for intelligent extraction
 const MEMORY_PATTERNS = {
 	// 任务相关
@@ -52,7 +56,8 @@ const MEMORY_PATTERNS = {
 /**
  * Build the auto-capture handler
  * Called after each AI turn to extract and store memories
- * Only runs every N turns (config.captureInterval)
+ * Improved: Dynamic capture - capture immediately when important content is found
+ * Falls back to interval capture for general context
  */
 export function buildCaptureHandler(storage: MemoryStorage, config: MemoryHubConfig) {
 	return async (event: Record<string, unknown>, ctx: Record<string, unknown>) => {
@@ -65,11 +70,6 @@ export function buildCaptureHandler(storage: MemoryStorage, config: MemoryHubCon
 			const newCount = currentCount + 1
 			sessionTurnCounts.set(sessionKey, newCount)
 
-			// Only capture every N turns
-			if (newCount % config.captureInterval !== 0) {
-				return
-			}
-
 			// Get recent transcript
 			const transcript = ctx.recentTranscript as Array<{ role: string; content: string }> | undefined
 			if (!transcript || transcript.length === 0) return
@@ -77,12 +77,35 @@ export function buildCaptureHandler(storage: MemoryStorage, config: MemoryHubCon
 			// Extract memories from transcript
 			const memories = await extractMemories(transcript, config)
 
-			// Store extracted memories
-			for (const memory of memories) {
-				await storeMemoryByType(storage, memory, config)
+			// Improved dynamic capture logic:
+			// 1. If any important memories found, capture immediately (don't wait for interval)
+			// 2. If no important memories, still capture on interval for general context
+			const shouldCapture = memories.length > 0 || (newCount % config.captureInterval === 0)
+			
+			if (!shouldCapture) {
+				return
 			}
 
-			console.log(`[Memory Hub] Captured ${memories.length} memories at turn ${newCount}`)
+			// Store extracted memories - FAST PATH (quick response)
+			let storedCount = 0
+			for (const memory of memories) {
+				await storeMemoryByType(storage, memory, config)
+				storedCount++
+				// Add to pending consolidation for SLOW PATH (async relation extraction)
+			pendingConsolidation.push(memory)
+			}
+
+			// Trigger async consolidation in background
+			if (pendingConsolidation.length > 0 && !consolidationLock.isProcessing) {
+				// Don't await - let it run in background
+			void consolidateRelationsAsync(storage, config, pendingConsolidation, consolidationLock)
+				pendingConsolidation = []
+			}
+
+			// If interval capture but no memories found, don't log
+			if (storedCount > 0) {
+				console.log(`[Memory Hub] Captured ${storedCount} memories at turn ${newCount} (${memories.length > 0 ? "dynamic" : "interval"})`)
+			}
 		} catch (error) {
 			console.error("Memory Hub capture error:", error)
 		}
@@ -91,6 +114,7 @@ export function buildCaptureHandler(storage: MemoryStorage, config: MemoryHubCon
 
 /**
  * Extract memories from transcript using intelligent pattern matching
+ * Improved: Checks all messages for important content, extracts immediately when found
  */
 async function extractMemories(
 	transcript: Array<{ role: string; content: string }>,
@@ -101,8 +125,7 @@ async function extractMemories(
 	const processedContent = new Set<string>()
 
 	for (const msg of transcript) {
-		if (msg.role !== "user") continue
-
+		// Process both user and assistant messages - AI can generate important content too
 		const content = msg.content.trim()
 		if (content.length < 10) continue // Skip very short messages
 
@@ -288,5 +311,83 @@ async function appendToDecisionsFile(storage: MemoryStorage, memory: Memory): Pr
 		await fs.appendFile(decisionsFile, entry)
 	} catch (error) {
 		console.error("Failed to append to decisions file:", error)
+	}
+}
+
+/**
+ * Async consolidation (SLOW PATH - MAGMA dual-stream architecture)
+ * Extract relations after memory is stored, doesn't block user response
+ */
+async function consolidateRelationsAsync(
+	storage: MemoryStorage,
+	config: MemoryHubConfig,
+	pending: Memory[],
+	lock: { isProcessing: boolean }
+) {
+	try {
+		lock.isProcessing = true
+		console.log(`[Memory Hub] Starting async consolidation for ${pending.length} memories`)
+
+		// 1. Extract temporal relations - based on creation time
+		const sorted = pending.sort((a, b) => 
+			new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+		)
+
+		// Connect consecutive memories in temporal order
+		for (let i = 0; i < sorted.length - 1; i++) {
+			const from = sorted[i]
+			const to = sorted[i + 1]
+			// Temporal relation: from happens before to
+			await storage.addRelation(from.id, to.id, 'temporal', 1.0)
+		}
+
+		// 2. Extract semantic relations - connect memories with similar content
+		// For each memory, connect to other memories with high similarity
+		for (const memory of pending) {
+			if (!memory.embedding) continue
+
+			// Find other recent memories and connect if similar
+			for (const other of pending) {
+				if (memory.id === other.id || !other.embedding) continue
+
+				// Simple cosine similarity check
+			let dot = 0
+			let normA = 0
+			let normB = 0
+			for (let i = 0; i < memory.embedding.length; i++) {
+				dot += memory.embedding[i] * other.embedding[i]
+				normA += memory.embedding[i] ** 2
+				normB += other.embedding[i] ** 2
+			}
+			const similarity = normA > 0 && normB > 0 ? dot / (Math.sqrt(normA) * Math.sqrt(normB)) : 0
+
+			// Connect if similarity above threshold
+			if (similarity > 0.7) {
+				await storage.addRelation(memory.id, other.id, 'semantic', similarity)
+				await storage.addRelation(other.id, memory.id, 'semantic', similarity)
+			}
+		}
+		}
+
+		// 3. Extract causal relations - simple heuristic based on content keywords
+		const causalPatterns = [
+			/because|所以|因此|导致|原因|结果|as a result|therefore/i,
+			/改进|修复|解决|fix|解决了/i
+		]
+
+		for (const [fromIdx, from] of pending.entries()) {
+			const hasCausal = causalPatterns.some(p => p.test(from.content))
+			if (hasCausal && fromIdx < pending.length - 1) {
+				// This memory caused the next one
+				const to = pending[fromIdx + 1]
+				await storage.addRelation(from.id, to.id, 'causal', 0.8)
+			}
+		}
+
+		console.log(`[Memory Hub] Async consolidation completed for ${pending.length} memories`)
+	} catch (error) {
+		console.error("[Memory Hub] Async consolidation error:", error)
+	} finally {
+		lock.isProcessing = false
 	}
 }

@@ -4,6 +4,7 @@
  */
 
 import type { Memory } from "./storage-sqlite.js"
+import type { MemoryHubConfig } from "./config.js"
 
 export type MemoryTier = "core" | "working" | "peripheral"
 
@@ -15,8 +16,8 @@ export interface MemoryLifecycle {
 	lastAccessedDays: number
 }
 
-// 衰减配置
-const DECAY_CONFIG = {
+// 默认衰减配置
+const DEFAULT_DECAY_CONFIG = {
 	// 半衰期（天）
 	halfLifeDays: 30,
 	
@@ -29,10 +30,19 @@ const DECAY_CONFIG = {
 	coreAccessThreshold: 10,
 	workingImportanceThreshold: 0.5,
 	workingAccessThreshold: 3,
-	
-	// 衰减系数
-	decayLambda: Math.LN2 / 30, // ln(2) / halfLifeDays
 }
+
+// 当前衰减配置
+let currentDecayConfig = { ...DEFAULT_DECAY_CONFIG }
+
+// 计算衰减系数（基于半衰期动态更新）
+function updateDecayLambda() {
+	// @ts-ignore
+	currentDecayConfig.decayLambda = Math.LN2 / currentDecayConfig.halfLifeDays
+}
+
+// 初始化衰减系数
+updateDecayLambda()
 
 /**
  * 计算记忆衰减分数
@@ -44,13 +54,14 @@ export function calculateDecayScore(memory: Memory): number {
 	const ageInDays = (now - createdAt) / (1000 * 60 * 60 * 24)
 	
 	// 基础衰减：指数衰减
-	const baseDecay = Math.exp(-DECAY_CONFIG.decayLambda * ageInDays)
+	// @ts-ignore
+	const baseDecay = Math.exp(-currentDecayConfig.decayLambda * ageInDays)
 	
 	// 访问频率加成
 	const accessCount = (memory as any).accessCount || 0
 	const accessBoost = Math.min(
-		DECAY_CONFIG.maxAccessBoost,
-		Math.log10(accessCount + 1) * DECAY_CONFIG.accessBoostFactor
+		currentDecayConfig.maxAccessBoost,
+		Math.log10(accessCount + 1) * currentDecayConfig.accessBoostFactor
 	)
 	
 	// 重要性加成
@@ -73,8 +84,8 @@ export function classifyMemoryTier(memory: Memory): MemoryTier {
 	
 	// Core: 高重要性 + 高访问
 	if (
-		importance >= DECAY_CONFIG.coreImportanceThreshold &&
-		accessCount >= DECAY_CONFIG.coreAccessThreshold
+		importance >= currentDecayConfig.coreImportanceThreshold &&
+		accessCount >= currentDecayConfig.coreAccessThreshold
 	) {
 		return "core"
 	}
@@ -86,8 +97,8 @@ export function classifyMemoryTier(memory: Memory): MemoryTier {
 	
 	// Working: 中等重要性或中等访问
 	if (
-		importance >= DECAY_CONFIG.workingImportanceThreshold ||
-		accessCount >= DECAY_CONFIG.workingAccessThreshold
+		importance >= currentDecayConfig.workingImportanceThreshold ||
+		accessCount >= currentDecayConfig.workingAccessThreshold
 	) {
 		return "working"
 	}
@@ -111,8 +122,8 @@ export function getMemoryLifecycle(memory: Memory): MemoryLifecycle {
 	
 	const accessCount = (memory as any).accessCount || 0
 	const accessBoost = Math.min(
-		DECAY_CONFIG.maxAccessBoost,
-		Math.log10(accessCount + 1) * DECAY_CONFIG.accessBoostFactor
+		currentDecayConfig.maxAccessBoost,
+		Math.log10(accessCount + 1) * currentDecayConfig.accessBoostFactor
 	)
 	
 	return {
@@ -191,12 +202,48 @@ export function getMemoryStats(memories: Memory[]): {
 }
 
 /**
+ * 清理过期记忆
+ * 移除衰减分数低于阈值的非Core记忆
+ */
+export function cleanupExpiredMemories(
+	memories: Memory[],
+	threshold = 0.2
+): string[] {
+	const toRemove: string[] = []
+	
+	for (const memory of memories) {
+		const tier = classifyMemoryTier(memory)
+		
+		// Core 记忆永远保留
+		if (tier === "core") continue
+		
+		const decayScore = calculateDecayScore(memory)
+		if (decayScore < threshold) {
+			toRemove.push(memory.id)
+		}
+	}
+	
+	return toRemove
+}
+
+/**
+ * 初始化衰减配置
+ */
+export function initDecayConfig(config: MemoryHubConfig) {
+	if (config.decayHalfLifeDays) {
+		currentDecayConfig.halfLifeDays = config.decayHalfLifeDays
+		updateDecayLambda()
+	}
+}
+
+/**
  * 导出配置（可自定义）
  */
 export function getDecayConfig() {
-	return { ...DECAY_CONFIG }
+	return { ...currentDecayConfig }
 }
 
-export function setDecayConfig(config: Partial<typeof DECAY_CONFIG>) {
-	Object.assign(DECAY_CONFIG, config)
+export function setDecayConfig(config: Partial<typeof DEFAULT_DECAY_CONFIG>) {
+	Object.assign(currentDecayConfig, config)
+	updateDecayLambda()
 }

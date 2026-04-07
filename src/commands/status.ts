@@ -1,6 +1,8 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { MemoryStorage } from "../storage-sqlite.js"
 import type { MemoryHubConfig } from "../config.js"
+import type { Memory } from "../storage-sqlite.js"
+import { classifyMemoryTier } from "../lifecycle.js"
 
 export function registerCommands(
 	api: OpenClawPluginApi,
@@ -116,8 +118,9 @@ Usage: /memory importance <memory-id> <0-1>
 				mem.importance = newImp
 				mem.updatedAt = new Date().toISOString()
 
-				// Re-calculate tier
-				mem.tier = storage.calculateTier(newImp, mem.accessCount || 0)
+				// Re-calculate tier using the lifecycle classification
+				const tempMem: Memory = { ...mem, importance: newImp, accessCount: mem.accessCount || 0 }
+				mem.tier = classifyMemoryTier(tempMem)
 
 				await storage.storeMemory(mem)
 				const stats = await storage.getStats()

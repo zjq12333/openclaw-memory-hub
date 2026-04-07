@@ -26,6 +26,7 @@ export interface Memory {
 	lastAccessed?: string
 	tier?: "core" | "working" | "peripheral"
 	decayScore?: number
+	is_archived?: number
 }
 
 export interface Task {
@@ -742,8 +743,9 @@ export class MemoryStorage {
 
 		if (duplicatesResult.length > 0 && duplicatesResult[0].values) {
 			for (const row of duplicatesResult[0].values) {
-				const title = row[0] as string
-				const type = row[1] as string
+				const r = row as any[]
+				const title = r[0] as string
+				const type = r[1] as string
 				// 找出重要性最高的，保留它，删除其他
 				const toKeep = this.db.exec(`
 					SELECT id, importance FROM memories WHERE title = ? AND type = ? AND is_archived = 0 ORDER BY importance DESC LIMIT 1
@@ -773,8 +775,9 @@ export class MemoryStorage {
 		if (lowValueResult.length > 0 && lowValueResult[0].values) {
 			removedLowValue = lowValueResult[0].values.length
 			for (const row of lowValueResult[0].values) {
-				this.db.run(`DELETE FROM memories WHERE id = ?`, [row[0] as string])
-				this.db.run(`DELETE FROM memory_decay WHERE memory_id = ?`, [row[0] as string])
+				const r = row as any[]
+				this.db.run(`DELETE FROM memories WHERE id = ?`, [r[0] as string])
+				this.db.run(`DELETE FROM memory_decay WHERE memory_id = ?`, [r[0] as string])
 		}
 		}
 
@@ -909,5 +912,90 @@ export class MemoryStorage {
 			description: get("description") as string | undefined,
 			mentionCount: get("mention_count") as number,
 		}
+	}
+
+	// ============================================
+	// MAGMA-inspired Relation Operations (Four Graphs)
+	// ============================================
+
+	/**
+	 * Add a relation between two memories
+	 */
+	async addRelation(fromId: string, toId: string, type: 'temporal' | 'causal' | 'semantic' | 'entity', confidence = 1.0): Promise<void> {
+		await this.init()
+		const now = new Date().toISOString()
+		this.db.run(`
+			INSERT OR REPLACE INTO memory_relations (from_id, to_id, relation_type, confidence, created_at)
+			VALUES (?, ?, ?, ?, ?)
+		`, [fromId, toId, type, confidence, now])
+	}
+
+	/**
+	 * Get connected memories by relation type
+	 */
+	async getConnected(memoryId: string, relationType: string): Promise<string[]> {
+		await this.init()
+		const result = this.db.exec(`
+			SELECT to_id FROM memory_relations WHERE from_id = ? AND relation_type = ?
+		`, [memoryId, relationType])
+		if (!result.length || !result[0].values) return []
+		return result[0].values.map((row: any) => row[0] as string)
+	}
+
+	/**
+	 * Get all related memory IDs by intent type
+	 * Intent: why -> causal, when -> temporal, entity -> entity, default -> semantic
+	 */
+	async getRelatedByIntent(queryIntent: string | null, anchorIds: string[]): Promise<string[]> {
+		await this.init()
+		if (!queryIntent || !anchorIds.length) return []
+
+		const relationTypes: string[] = []
+		if (/why|原因|为什么/i.test(queryIntent)) {
+			relationTypes.push('causal')
+		}
+		if (/when|什么时候|之前|之后/i.test(queryIntent)) {
+			relationTypes.push('temporal')
+		}
+		if (/entity|关于|什么是|who|谁/i.test(queryIntent)) {
+			relationTypes.push('entity')
+		}
+		if (relationTypes.length === 0) {
+			relationTypes.push('semantic')
+		}
+
+		const placeholders = anchorIds.map(() => '?').join(', ')
+		const typePlaceholders = relationTypes.map(() => '?').join(', ')
+
+		const result = this.db.exec(`
+			SELECT DISTINCT to_id FROM memory_relations 
+			WHERE from_id IN (${placeholders}) AND relation_type IN (${typePlaceholders})
+		`, [...anchorIds, ...relationTypes])
+
+		if (!result.length || !result[0].values) return []
+		return result[0].values.map((row: any) => row[0] as string)
+	}
+
+	/**
+	 * Map memory to entity
+	 */
+	async addMemoryEntityMapping(memoryId: string, entityId: string, role?: string): Promise<void> {
+		await this.init()
+		this.db.run(`
+			INSERT OR REPLACE INTO memory_entity_map (memory_id, entity_id, role)
+			VALUES (?, ?, ?)
+		`, [memoryId, entityId, role || null])
+	}
+
+	/**
+	 * Get all memories for an entity
+	 */
+	async getMemoriesByEntity(entityId: string): Promise<string[]> {
+		await this.init()
+		const result = this.db.exec(`
+			SELECT memory_id FROM memory_entity_map WHERE entity_id = ?
+		`, [entityId])
+		if (!result.length || !result[0].values) return []
+		return result[0].values.map((row: any) => row[0] as string)
 	}
 }

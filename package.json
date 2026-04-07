@@ -47,5 +47,80 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "configSchema": {
+      "type": "object",
+      "properties": {
+        "storagePath": {
+          "type": "string",
+          "default": "~/memory"
+        },
+        "autoRecall": {
+          "type": "boolean",
+          "default": true
+        },
+        "autoCapture": {
+          "type": "boolean",
+          "default": true
+        },
+        "captureInterval": {
+          "type": "number",
+          "default": 5
+        },
+        "obsidianSync": {
+          "type": "boolean",
+          "default": false
+        },
+        "obsidianVault": {
+          "type": "string"
+        },
+        "vectorSearch": {
+          "type": "boolean",
+          "default": true
+        },
+        "maxRecallResults": {
+          "type": "number",
+          "default": 5
+        },
+        "recallThreshold": {
+          "type": "number",
+          "default": 0.5
+        },
+        "ollamaBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:11434"
+        },
+        "ollamaModel": {
+          "type": "string",
+          "default": "nomic-embed-text"
+        },
+        "decayEnabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "decayHalfLifeDays": {
+          "type": "number",
+          "default": 30
+        },
+        "smartExtraction": {
+          "type": "boolean",
+          "default": false
+        },
+        "smartExtractionModel": {
+          "type": "string"
+        },
+        "smartExtractionBaseUrl": {
+          "type": "string"
+        },
+        "smartExtractionApiKey": {
+          "type": "string"
+        }
+      },
+      "required": []
+    }
   }
 }
