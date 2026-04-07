@@ -1,0 +1,18 @@
+{
+  "storagePath": "D:\\openclaw-workspace\\memory",
+  "autoRecall": true,
+  "autoCapture": true,
+  "captureInterval": 5,
+  "obsidianSync": true,
+  "obsidianVault": "D:\\obsidian\\memory",
+  "vectorSearch": true,
+  "maxRecallResults": 5,
+  "recallThreshold": 0.5,
+  "ollamaBaseUrl": "http://localhost:11434",
+  "ollamaModel": "nomic-embed-text-v2-moe",
+  "decayEnabled": true,
+  "decayHalfLifeDays": 30,
+  "smartExtraction": true,
+  "smartExtractionModel": "qwen3-vl:4b",
+  "smartExtractionBaseUrl": "http://localhost:11434"
+}

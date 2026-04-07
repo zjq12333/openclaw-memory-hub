@@ -6,7 +6,7 @@ import { fileURLToPath } from "url"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const DB_PATH = join(homedir(), "memory", "memory.db")
+const DB_PATH = "D:\\openclaw-workspace\\memory\\memory.db"
 const SQL_PATH = join(__dirname, "..", "memory.db.sql")
 
 async function initDatabase() {
@@ -64,8 +64,8 @@ async function initDatabase() {
 
   // 插入当前任务
   db.run(
-    `INSERT OR REPLACE INTO memories (id, type, category, title, content, importance)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT OR REPLACE INTO memories (id, type, category, title, content, importance, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       "task-feishu-ceo-render",
       "task",
@@ -73,53 +73,56 @@ async function initDatabase() {
       "飞书CEO视频渲染",
       "执行飞书CEO机器人宣传视频渲染，项目路径: D:\\RemotionProjects\\feishu-ceo-promotion",
       0.9,
+      now,
+      now,
     ]
   )
 
   db.run(
-    `INSERT OR REPLACE INTO tasks (id, title, description, status, priority)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT OR REPLACE INTO tasks (id, title, description, status, priority, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     [
       "task-feishu-ceo-render",
       "飞书CEO视频渲染",
       "执行 npx remotion render src/index.ts feishu-ceo-promo out/feishu-ceo-promo.mp4",
       "pending",
       3,
+      now,
     ]
   )
 
   // 插入用户偏好
   db.run(
-    `INSERT OR REPLACE INTO user_preferences (preference_type, preference_key, preference_value, confidence)
-     VALUES (?, ?, ?, ?)`,
-    ["communication_style", "language", "chinese", 0.9]
+    `INSERT OR REPLACE INTO user_preferences (preference_type, preference_key, preference_value, confidence, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    ["communication_style", "language", "chinese", 0.9, now, now]
   )
   db.run(
-    `INSERT OR REPLACE INTO user_preferences (preference_type, preference_key, preference_value, confidence)
-     VALUES (?, ?, ?, ?)`,
-    ["communication_style", "tone", "concise", 0.8]
+    `INSERT OR REPLACE INTO user_preferences (preference_type, preference_key, preference_value, confidence, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    ["communication_style", "tone", "concise", 0.8, now, now]
   )
   db.run(
-    `INSERT OR REPLACE INTO user_preferences (preference_type, preference_key, preference_value, confidence)
-     VALUES (?, ?, ?, ?)`,
-    ["response_length", "preferred", "medium", 0.7]
+    `INSERT OR REPLACE INTO user_preferences (preference_type, preference_key, preference_value, confidence, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    ["response_length", "preferred", "medium", 0.7, now, now]
   )
 
   // 插入实体
   db.run(
-    `INSERT OR REPLACE INTO entities (id, name, type, description)
-     VALUES (?, ?, ?, ?)`,
-    ["entity-feishu", "飞书", "organization", "字节跳动旗下企业协作平台"]
+    `INSERT OR REPLACE INTO entities (id, name, type, description, mention_count)
+     VALUES (?, ?, ?, ?, ?)`,
+    ["entity-feishu", "飞书", "organization", "字节跳动旗下企业协作平台", 1]
   )
   db.run(
-    `INSERT OR REPLACE INTO entities (id, name, type, description)
-     VALUES (?, ?, ?, ?)`,
-    ["entity-remotion", "Remotion", "technology", "React 视频制作框架"]
+    `INSERT OR REPLACE INTO entities (id, name, type, description, mention_count)
+     VALUES (?, ?, ?, ?, ?)`,
+    ["entity-remotion", "Remotion", "technology", "React 视频制作框架", 1]
   )
   db.run(
-    `INSERT OR REPLACE INTO entities (id, name, type, description)
-     VALUES (?, ?, ?, ?)`,
-    ["entity-openclaw", "OpenClaw", "technology", "AI Agent 框架"]
+    `INSERT OR REPLACE INTO entities (id, name, type, description, mention_count)
+     VALUES (?, ?, ?, ?, ?)`,
+    ["entity-openclaw", "OpenClaw", "technology", "AI Agent 框架", 1]
   )
 
   // 更新统计

@@ -14,7 +14,7 @@
 
 **中文**：
 
-这是OpenClaw的本地记忆系统插件，设计理念是**本地负责所有记忆工作（存储/嵌入/提取/进化），远端大模型负责最终输出和项目执行**，节省大量Token，完全私密，不开云服务。
+这是OpenClaw的本地记忆系统插件，设计理念是**本地负责所有记忆工作（存储/嵌入/提取/进化），远端大模型负责最终输出和项目执行**，节省大量Token，完全私密，不需要云服务。
 
 基于最新论文 **MAGMA: A Multi-Graph based Agentic Memory Architecture** 改进，支持意图导向的结构化记忆检索，比纯向量搜索更准确，尤其擅长长程推理。
 
@@ -30,7 +30,7 @@ Improved based on the latest paper **MAGMA: A Multi-Graph based Agentic Memory A
 - ✅ **MAGMA 架构** - 四张正交关系图 (时间/因果/语义/实体) + 意图自适应beam search遍历  
 - ✅ **意图感知检索** - 为什么/什么时候/关于 不同查询不同检索路径，结果对齐更好  
 - ✅ **双流水线写入** - 快速响应用户，后台异步提取关系，不阻塞  
-- **多模态视觉支持** - 集成qwen-vl，图片转文字存入记忆可搜索  
+- ✅ **多模态视觉支持** - 集成qwen-vl，图片转文字存入记忆可搜索  
 - ✅ **自动模型检测** - 本地自动检测最优嵌入/提取/视觉模型，不需要手动配置  
 - ✅ **零Token成本** - 所有嵌入提取都本地Ollama完成，不消耗远端API Token  
 
@@ -113,7 +113,7 @@ Add to your `openclaw.json`:
 
 ## 🔥 MAGMA 改进 / MAGMA Improvements
 
-本文实现了论文 [MAGMA: A Multi-Graph based Agentic Memory Architecture](https://arxiv.org/html/2601.03236v1) 的核心创新：
+本项目完整实现了论文 [MAGMA: A Multi-Graph based Agentic Memory Architecture](https://arxiv.org/html/2601.03236v1) 的核心创新：
 
 - **四张正交关系图** - 分离存储时间/因果/语义/实体四种关系  
 - **意图自适应检索** - 启发式Beam Search，根据查询意图导向遍历  
@@ -131,18 +131,25 @@ Add to your `openclaw.json`:
 
 ## 📝 更新日志 / Changelog
 
+- **v0.4.0** (2026-04-08) - 整合AAAK压缩算法，支持full-text压缩，适配Obsidian中文结构化目录，默认开启smartExtraction  
 - **v0.3.0** (2026-04-07) - 完整实现MAGMA多图架构，新增意图导向检索，双流水线，视觉支持  
 - **v0.2.0** (2026-04-06) - 新增向量搜索，衰减配置，自动捕获  
-- **v0.1.0** (2026-04-0x) - 初始发布  
+- **v0.1.0** (2026-04-06) - 初始发布  
 
-## 💡 灵感 / Credits
+## 💡 参考 / Credits
 
-- 论文 [MAGMA: A Multi-Graph based Agentic Memory Architecture](https://arxiv.org/abs/2601.03236) - 架构灵感  
-- OpenClaw 框架 - [openclaw.ai](https://openclw.ai)  
+- [milla-jovovich/mempalace](https://github.com/milla-jovovich/mempalace) - AAAK压缩算法来源  
+- [MAGMA: A Multi-Graph based Agentic Memory Architecture](https://arxiv.org/abs/2601.03236) - 架构灵感来源  
+- [OpenClaw](https://openclaw.ai) - 框架支持  
 
-## 🙏 感谢
+## 🙏 致谢
 
-感谢大哥（渣南）的需求和指导，让这个项目一步步完善 🙌
+- [MAGMA: A Multi-Graph based Agentic Memory Architecture](https://arxiv.org/abs/2601.03236) - 架构灵感来源  
+- [OpenClaw](https://openclaw.ai) - 框架支持  
+
+## 🙏 致谢
+
+感谢 渣南（zjq12333）发起项目和指导开发 🙌
 
 ## 📄 许可证 / License
 

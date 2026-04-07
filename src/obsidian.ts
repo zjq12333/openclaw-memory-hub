@@ -10,24 +10,25 @@ export async function syncToObsidian(
 	vaultPath: string,
 	event: Record<string, unknown>
 ): Promise<void> {
-	const memoryDir = join(vaultPath, "🧠 Memory")
+	const openclawDir = join(vaultPath, "OpenClaw")
+	const memoryHubDir = join(openclawDir, "记忆中心")
 
 	// Ensure directory exists
-	await mkdir(memoryDir, { recursive: true })
+	await mkdir(memoryHubDir, { recursive: true })
 
 	// Sync active tasks
 	const activeTasks = await storage.loadCoreBlock("active_tasks")
 	if (activeTasks) {
-		await writeFile(join(memoryDir, "Active Tasks.md"), activeTasks)
+		await writeFile(join(memoryHubDir, "当前活跃任务.md"), activeTasks)
 	}
 
 	// Sync archived memories
 	const memories = await storage.listMemories()
-	const archiveDir = join(memoryDir, "Archive")
+	const archiveDir = join(memoryHubDir, "归档")
 	await mkdir(archiveDir, { recursive: true })
 
 	for (const memory of memories) {
-		const categoryDir = join(archiveDir, memory.type === "decision" ? "Decisions" : memory.type === "project" ? "Projects" : "Knowledge")
+		const categoryDir = join(archiveDir, memory.type === "decision" ? "决策" : memory.type === "project" ? "项目" : "知识")
 		await mkdir(categoryDir, { recursive: true })
 		await writeFile(join(categoryDir, `${memory.id}.md`), memory.content)
 	}
