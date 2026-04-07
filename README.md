@@ -1,68 +1,59 @@
 # openclaw-memory-hub
 
-**Lightweight, token-optimized memory system for OpenClaw** | Local vector search with Ollama | Zero API cost
+> Lightweight token-optimized memory system for OpenClaw | Local vector search with Ollama | Zero API cost | MAGMA multi-graph architecture supported
+
+**轻量级、Token优化的OpenClaw记忆系统 | 本地Ollama向量搜索 | 零API成本 | 支持MAGMA多图架构**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![OpenClaw Plugin](https://img.shields.io/badge/OpenClaw-Plugin-blue.svg)](https://openclaw.ai)
-[![Version](https://img.shields.io/badge/version-0.3.0-green.svg)](https://github.com/zjq12333/openclaw-memory-hub)
+[![Version](https://img.shields.io/badge/version-0.3.0-green.svg)](https://github.com/zjq12333/openclaw-memory-hub/releases)
 
-## ✨ Architecture
+---
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                                                         │                                     
-│  🧠  Local tiered memory + local embeddings + smart extraction 
-│                                                         │
-│  🌐  Online big model → project execution & reasoning  
-│                                                         │
-└───────────────────────────────────────────────────────────────────────┘
-```
+## 📖 简介 / Introduction
 
-Perfect matches your design: **local does all memory work (storage/embedding/extraction/evolution), online does the final output**.
+**中文**：
 
-## 🚀 MAGMA Architecture
+这是OpenClaw的本地记忆系统插件，设计理念是**本地负责所有记忆工作（存储/嵌入/提取/进化），远端大模型负责最终输出和项目执行**，节省大量Token，完全私密，不开云服务。
 
-This project now implements the **MAGMA** (Multi-Graph based Agentic Memory Architecture) improvements from [arXiv:2601.03236](https://arxiv.org/html/2601.03236v1):
+基于最新论文 **MAGMA: A Multi-Graph based Agentic Memory Architecture** 改进，支持意图导向的结构化记忆检索，比纯向量搜索更准确，尤其擅长长程推理。
 
-- **Four orthogonal relation graphs** → separates temporal/causal/semantic/entity relations
-- **Intent-adaptive retrieval** → route based on query intent (why/when/about)
-- **Adaptive heuristic beam search** → graph traversal with intent weighting
-- **Dual-stream memory evolution** → fast response + async relation consolidation
-- **Structure-aware output synthesis** → topological sort preserves logical structure
+**English**：
 
-## 📊 Token usage comparison vs other memory systems
+A lightweight local memory system plugin for OpenClaw. Design philosophy: **local does all memory work (storage/embedding/extraction/evolution), online LLM does final output and project execution**. Saves a lot of tokens, fully private, no cloud required.
 
-|                   |  traditional memory  |  memory-hub  |  savings 
-|-------------------|--------------------|----------------|----------------|
-| token per turn            |  ~100-300         |  ~ 0-5            | 
-|-------------------|--------------------|----------------|----------------|
-| embedding per search  |  0 (local)       |  0                | 
-| extraction per capture |  0 (local)       |  0                | 
-| total per conversation  |  ~50-200 tokens    |  ~ 0-50 tokens        | 
+Improved based on the latest paper **MAGMA: A Multi-Graph based Agentic Memory Architecture**, supports intent-guided structured memory retrieval, more accurate than pure vector search, especially good at long-horizon reasoning.
 
-**Total monthly token saving: ~ 1,200,000 tokens saved!** 🎉
+## ✨ 特性 / Features
 
-## 🚀 Quick start
+- ✅ **分层记忆** - Core/Working/Peripheral 三层记忆，自动衰减，越用越清晰  
+- ✅ **MAGMA 架构** - 四张正交关系图 (时间/因果/语义/实体) + 意图自适应beam search遍历  
+- ✅ **意图感知检索** - 为什么/什么时候/关于 不同查询不同检索路径，结果对齐更好  
+- ✅ **双流水线写入** - 快速响应用户，后台异步提取关系，不阻塞  
+- **多模态视觉支持** - 集成qwen-vl，图片转文字存入记忆可搜索  
+- ✅ **自动模型检测** - 本地自动检测最优嵌入/提取/视觉模型，不需要手动配置  
+- ✅ **零Token成本** - 所有嵌入提取都本地Ollama完成，不消耗远端API Token  
 
-### 1. Prerequisites
+## 🚀 快速开始 / Quick Start
 
-- Install [Ollama](https://ollama.com/) (required for vector embedding and smart extraction)
-- Pull embedding model: `ollama pull nomic-embed-text-v2-moe`
-- Pull vision model (optional for images): `ollama pull qwen3-vl:4b`
+### 前置要求 / Prerequisites
 
-### 2. Install the plugin
+- 安装 [Ollama](https://ollama.com/)  
+- 拉取嵌入模型：`ollama pull nomic-embed-text-v2-moe`  
+- （可选）拉取视觉模型：`ollama pull qwen3-vl:4b`  
+
+### 安装 / Install
 
 ```bash
-# Clone this repo
 git clone https://github.com/zjq12333/openclaw-memory-hub
 cd openclaw-memory-hub
 npm install
 npm run build
 ```
 
-### 3. Enable in OpenClaw
+### 配置 / Configuration
 
-Add this to your `openclaw.json`:
+Add to your `openclaw.json`:
 
 ```json
   "plugins": {
@@ -90,55 +81,73 @@ Add this to your `openclaw.json`:
   }
 ```
 
-## ⚙️ Configuration options
+## ⚙️ 配置选项 / Configuration Options
 
-|  Option | Type | Default | Description |
-|-------------------|----------|----------|-----------------|
-| `storagePath` | `string` | `~/memory` | Where to store the memory database |
-| `autoRecall` | `boolean` | `true` | Auto inject relevant memories before each conversation |
-| `autoCapture` | `boolean` | `true` | Auto capture important information from conversations |
-| `captureInterval` | `number` | `5` | Capture memories every N turns |
-| `vectorSearch` | `boolean` | `true` | Enable vector semantic search |
-| `ollamaBaseUrl` | `string` | `http://localhost:11434` | Ollama server base url |
-| `ollamaModel` | `string` | `nomic-embed-text-v2-moe` | Embedding model name (auto-detect best available if not set) |
-| `decayEnabled` | `boolean` | `true` | Enable automatic importance decay (cleanup old memories) |
-| `decayHalfLifeDays` | `number` | `30` | Half-life for decay in days (older memories lose importance over time) |
-| `maxRecallResults` | `number` | `5` | Maximum number of memories to recall |
-| `recallThreshold` | `number` | `0.5` | Minimum semantic similarity threshold to be recalled |
-| `autoMaintenance` | `boolean` | `true` | Run maintenance automatically on startup |
-| `smartExtraction` | `boolean` | `false` | Enable smart extraction of key points from conversation (uses your configured LLM) |
-| `visionEnabled` | `boolean` | `true` | Enable vision support - extract text from images using VLMs |
-| `visionModel` | `string` | `qwen3-vl:4b` | Vision-language model to use for image description |
-| `visionBaseUrl` | `string` | `http://localhost:11434` | Ollama server base url for vision |
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `storagePath` | `string` | `~/memory` | 记忆数据库存储位置 |
+| `autoRecall` | `boolean` | `true` | 每次对话前自动注入相关记忆 |
+| `autoCapture` | `boolean` | `true` | 自动从对话捕获重要信息 |
+| `captureInterval` | `number` | `5` | 没检测到重要内容时，间隔多少轮捕获 |
+| `vectorSearch` | `boolean` | `true` | 启用向量语义搜索 |
+| `ollamaBaseUrl` | `string` | `http://localhost:11434` | Ollama服务地址 |
+| `ollamaModel` | `string` | `nomic-embed-text-v2-moe` | 嵌入模型名称（不配置自动检测） |
+| `decayEnabled` | `boolean` | `true` | 启用自动重要性衰减 |
+| `decayHalfLifeDays` | `number` | `30` | 衰减半衰期（天） |
+| `maxRecallResults` | `number` | `5` | 召回最大记忆数 |
+| `recallThreshold` | `number` | `0.5` | 召回最小语义相似度阈值 |
+| `autoMaintenance` | `boolean` | `true` | 启动时自动维护 |
+| `smartExtraction` | `boolean` | `false` | 启用大模型智能关键点提取 |
+| `visionEnabled` | `boolean` | `true` | 启用视觉支持，提取图片文字描述 |
+| `visionModel` | `string` | `qwen3-vl:4b` | 视觉语言模型名称 |
+| `visionBaseUrl` | `string` | `http://localhost:11434` | 视觉Ollama地址 |
 
-## 🔧 Commands
+## 🔧 命令 / Commands
 
-| Command | Description |
-|-------------------|-------------|----------------------|
-| `/memory status` | Show memory system statistics |
-| `/memory list` | List all non-archived memories |
-| `/memory export` | Export all memories to markdown |
-| `/memory importance <id> <0-1>` | Adjust importance of a memory |
+| 命令 | 说明 |
+|------|------|
+| `/memory status` | 显示记忆系统统计 |
+| `/memory list` | 列出所有未归档记忆 |
+| `/memory export` | 导出所有记忆到Markdown |
+| `/memory importance <id> <0-1>` | 调整记忆重要性 |
 
-## 📈 Features implemented
+## 🔥 MAGMA 改进 / MAGMA Improvements
 
-✅ **Incremental embedding update** → when you update a memory, embedding automatically updates
-✅ **Manual importance adjustment** → adjust memory importance directly from chat command
-✅ **Automatic maintenance on startup** → run decay + compaction automatically on startup
-✅ **Automatic model detection** → automatically detect the best embedding/extraction models installed locally, no config needed
-✅ **Full support for vision-language models** → extract text from images and store them as memory, works perfectly with qwen-vl
-✅ **MAGMA Multi-Graph Architecture** → complete implementation of MAGMA: four orthogonal relation graphs + intent-adaptive beam search traversal
-✅ **Intent-aware retrieval** → different retrieval paths for why/when/about queries, better alignment between query and results
-✅ **Dual-stream writing** → fast path responds immediately, slow path does async relation extraction in background
+本文实现了论文 [MAGMA: A Multi-Graph based Agentic Memory Architecture](https://arxiv.org/html/2601.03236v1) 的核心创新：
 
-就是这样！完整支持图文记忆，完美符合需求👍
+- **四张正交关系图** - 分离存储时间/因果/语义/实体四种关系  
+- **意图自适应检索** - 启发式Beam Search，根据查询意图导向遍历  
+- **结构感知输出** - 拓扑排序保留逻辑结构  
+- **双流水线进化** - 快速路径响应，慢速路径后台异步关系 Consolidation  
 
-## 💡 Why this project?
+## 📊 对比 / Comparison
 
-Implements the architecture you designed: **local memory storage + embedding + extraction evolution → online model does final response and project execution**
+|  | 传统记忆 | memory-hub (MAGMA) |
+|------|--------------|------------------|
+| 关系混在一起 | ❌ | ✅ 四张图分离 |
+| 意图对齐 | ❌ | ✅ 意图导向检索 |
+| 图片支持 | ❌ | ✅ qwen-vl 图片描述可搜索 |
+| Token 消耗 | 高 | 低（本地完成所有计算） |
 
-Perfect matches your idea: **local does all the knowledge work, online does the project work** 🎉
+## 📝 更新日志 / Changelog
 
-## License
+- **v0.3.0** (2026-04-07) - 完整实现MAGMA多图架构，新增意图导向检索，双流水线，视觉支持  
+- **v0.2.0** (2026-04-06) - 新增向量搜索，衰减配置，自动捕获  
+- **v0.1.0** (2026-04-0x) - 初始发布  
 
-[MIT](./LICENSE) © zjq12333 2026
+## 💡 灵感 / Credits
+
+- 论文 [MAGMA: A Multi-Graph based Agentic Memory Architecture](https://arxiv.org/abs/2601.03236) - 架构灵感  
+- OpenClaw 框架 - [openclaw.ai](https://openclw.ai)  
+
+## 🙏 感谢
+
+感谢大哥（渣南）的需求和指导，让这个项目一步步完善 🙌
+
+## 📄 许可证 / License
+
+[MIT](./LICENSE) © [zjq12333](https://github.com/zjq12333) 2026
+
+---
+
+*Made with ❤️ on OpenClaw*
