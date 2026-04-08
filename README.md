@@ -26,11 +26,13 @@ Improved based on the latest paper **MAGMA: A Multi-Graph based Agentic Memory A
 
 ## ✨ 特性 / Features
 
-- ✅ **分层记忆** - Core/Working/Peripheral 三层记忆，自动衰减，越用越清晰  
+- ✅ **分层记忆** - Core/Working/Peripheral 三层记忆，自动衰减进化，越用越清晰  
 - ✅ **MAGMA 架构** - 四张正交关系图 (时间/因果/语义/实体) + 意图自适应beam search遍历  
+- ✅ **AAAK 全文压缩** - 集成AAAK结构化压缩，保留完整信息，节省 4-5x Token  
 - ✅ **意图感知检索** - 为什么/什么时候/关于 不同查询不同检索路径，结果对齐更好  
 - ✅ **双流水线写入** - 快速响应用户，后台异步提取关系，不阻塞  
 - ✅ **多模态视觉支持** - 集成qwen-vl，图片转文字存入记忆可搜索  
+- ✅ **Obsidian 自动同步** - 自动同步记忆到你的 Obsidian 仓库，结构化分类  
 - ✅ **自动模型检测** - 本地自动检测最优嵌入/提取/视觉模型，不需要手动配置  
 - ✅ **零Token成本** - 所有嵌入提取都本地Ollama完成，不消耗远端API Token  
 
